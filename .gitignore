@@ -1,0 +1,30 @@
+# Build artifacts
+terraform-provider-vboxweb
+*.exe
+
+# Terraform files
+examples/.terraform/
+examples/.terraform.lock.hcl
+examples/terraform.tfstate
+examples/terraform.tfstate.backup
+**/*.tfstate
+**/*.tfstate.*
+**/.terraform/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage.out
+coverage.html
+
+# Go
+vendor/
