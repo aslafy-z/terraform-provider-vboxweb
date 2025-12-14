@@ -420,7 +420,7 @@ func (c *Client) CreateNATPortForward(ctx context.Context, rule NATPortForwardRu
 		if err := api.LockMachine(ctx, machineRef, sessObj, true); err != nil {
 			return fmt.Errorf("failed to lock machine: %w", err)
 		}
-		defer api.UnlockSession(context.Background(), sessObj)
+		defer func() { _ = api.UnlockSession(context.Background(), sessObj) }()
 
 		// Get the mutable machine reference
 		mutableMachineRef, err := api.GetMutableMachine(ctx, sessObj)
@@ -527,7 +527,7 @@ func (c *Client) DeleteNATPortForward(ctx context.Context, machineID string, ada
 		if err := api.LockMachine(ctx, machineRef, sessObj, true); err != nil {
 			return fmt.Errorf("failed to lock machine: %w", err)
 		}
-		defer api.UnlockSession(context.Background(), sessObj)
+		defer func() { _ = api.UnlockSession(context.Background(), sessObj) }()
 
 		// Get the mutable machine reference
 		mutableMachineRef, err := api.GetMutableMachine(ctx, sessObj)
