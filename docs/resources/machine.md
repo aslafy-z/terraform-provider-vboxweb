@@ -85,7 +85,25 @@ resource "vboxweb_machine" "full" {
 
 ## Import
 
-~> **Note:** Import is not currently supported for this resource.
+Existing VirtualBox machines can be imported into Terraform using their UUID or name.
+
+```shell
+terraform import vboxweb_machine.example <machine_uuid_or_name>
+```
+
+### Import by UUID
+
+```shell
+terraform import vboxweb_machine.example "550e8400-e29b-41d4-a716-446655440000"
+```
+
+### Import by Name
+
+```shell
+terraform import vboxweb_machine.example "my-existing-vm"
+```
+
+~> **Note:** When importing an existing machine, the `source` attribute will be set to an empty string since the original source VM cannot be determined. After import, you should update your Terraform configuration to set `source` to an appropriate value (or any placeholder value, as it is only used during initial clone). The `clone_mode` and `clone_options` attributes will also be set to defaults.
 
 ## Lifecycle Behavior
 

@@ -130,6 +130,41 @@ func (c *Client) CloneAndConverge(ctx context.Context, req CloneRequest) (uuid s
 	return uuid, currentState, err
 }
 
+// MachineInfo contains basic information about a VirtualBox machine.
+type MachineInfo struct {
+	ID    string
+	Name  string
+	State string
+}
+
+// GetMachineInfoByID returns basic information about a VM by its UUID.
+func (c *Client) GetMachineInfoByID(ctx context.Context, id string) (*MachineInfo, error) {
+	var info MachineInfo
+	err := c.withSession(ctx, func(ctx context.Context, api vboxapi.VBoxAPI, session string) error {
+		mRef, err := findMachine(ctx, api, session, id)
+		if err != nil {
+			return err
+		}
+		info.ID, err = api.GetMachineId(ctx, mRef)
+		if err != nil {
+			return err
+		}
+		info.Name, err = api.GetMachineName(ctx, mRef)
+		if err != nil {
+			return err
+		}
+		info.State, err = api.GetMachineState(ctx, mRef)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &info, nil
+}
+
 // GetStateByID returns the current state of a VM by its UUID.
 func (c *Client) GetStateByID(ctx context.Context, id string) (string, error) {
 	var out string

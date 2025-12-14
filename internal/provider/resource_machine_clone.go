@@ -2,11 +2,13 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
@@ -287,3 +289,47 @@ func (r *machineCloneResource) Delete(ctx context.Context, req resource.DeleteRe
 		return
 	}
 }
+
+// ImportState implements resource.ResourceWithImportState.
+// Import ID format: machine UUID or name
+func (r *machineCloneResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	// The import ID can be either a machine UUID or name
+	machineInfo, err := r.client.GetMachineInfoByID(ctx, req.ID)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Failed to import machine",
+			fmt.Sprintf("Could not find machine with ID or name %q: %s", req.ID, err.Error()),
+		)
+		return
+	}
+
+	// Set the ID (UUID)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), machineInfo.ID)...)
+
+	// Set the name
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), machineInfo.Name)...)
+
+	// Set current state
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("current_state"), machineInfo.State)...)
+
+	// Set defaults for fields that can't be determined from existing machine
+	// source is unknown for imported machines - set to empty string (will require manual update)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("source"), "")...)
+
+	// Set sensible defaults for clone options
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("clone_mode"), "MachineState")...)
+
+	// Determine desired state based on current state
+	desiredState := "stopped"
+	if machineInfo.State == "Running" {
+		desiredState = "started"
+	}
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("state"), desiredState)...)
+
+	// Set default session type and timeout
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("session_type"), "headless")...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("wait_timeout"), "20m")...)
+}
+
+// Ensure the resource implements the ResourceWithImportState interface
+var _ resource.ResourceWithImportState = &machineCloneResource{}

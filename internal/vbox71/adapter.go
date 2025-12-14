@@ -136,6 +136,14 @@ func (a *Adapter) GetMachineId(ctx context.Context, machineRef string) (string, 
 	return resp.Returnval, nil
 }
 
+func (a *Adapter) GetMachineName(ctx context.Context, machineRef string) (string, error) {
+	resp, err := a.svc.IMachine_getNameContext(ctx, &generated.IMachine_getName{This: machineRef})
+	if err != nil {
+		return "", err
+	}
+	return resp.Returnval, nil
+}
+
 func (a *Adapter) GetMachineState(ctx context.Context, machineRef string) (string, error) {
 	resp, err := a.svc.IMachine_getStateContext(ctx, &generated.IMachine_getState{This: machineRef})
 	if err != nil {

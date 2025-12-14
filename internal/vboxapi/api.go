@@ -25,6 +25,7 @@ type VBoxAPI interface {
 
 	// Machine properties
 	GetMachineId(ctx context.Context, machineRef string) (uuid string, err error)
+	GetMachineName(ctx context.Context, machineRef string) (name string, err error)
 	GetMachineState(ctx context.Context, machineRef string) (state string, err error)
 	GetOSTypeId(ctx context.Context, machineRef string) (osTypeId string, err error)
 
