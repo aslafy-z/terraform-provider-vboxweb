@@ -5,8 +5,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/provider"
-	"github.com/hashicorp/terraform-plugin-framework/providerserver"
-	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 )
 
 func TestProviderMetadata(t *testing.T) {
@@ -91,11 +89,6 @@ func TestProviderDataSources(t *testing.T) {
 	if dataSources != nil && len(dataSources) != 0 {
 		t.Errorf("expected no data sources, got %d", len(dataSources))
 	}
-}
-
-// testAccProtoV6ProviderFactories creates provider factories for acceptance testing.
-var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
-	"vboxweb": providerserver.NewProtocol6WithError(New()),
 }
 
 func TestProviderNew(t *testing.T) {
