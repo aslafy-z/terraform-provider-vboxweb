@@ -70,6 +70,8 @@ When `source` is specified (cloning):
 4. Registers the cloned VM with VirtualBox
 5. Starts or stops the VM based on the `state` attribute
 
+~> **Important:** The source VM must be powered off before cloning. VirtualBox locks the disk when a VM is running, which prevents the clone operation from accessing the source disk.
+
 ~> **Note:** Creating VMs from scratch (without a source) is not yet supported and will result in an error.
 
 ### Update
