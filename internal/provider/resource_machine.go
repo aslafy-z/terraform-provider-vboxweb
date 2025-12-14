@@ -20,11 +20,11 @@ import (
 	"github.com/aslafy-z/terraform-provider-vboxweb/internal/vbox"
 )
 
-type machineCloneResource struct {
+type machineResource struct {
 	client *vbox.Client
 }
 
-type machineCloneModel struct {
+type machineModel struct {
 	ID           types.String `tfsdk:"id"`
 	Name         types.String `tfsdk:"name"`
 	Source       types.String `tfsdk:"source"`
@@ -38,24 +38,24 @@ type machineCloneModel struct {
 	CurrentState types.String `tfsdk:"current_state"`
 }
 
-func NewMachineCloneResource() resource.Resource {
-	return &machineCloneResource{}
+func NewMachineResource() resource.Resource {
+	return &machineResource{}
 }
 
-func (r *machineCloneResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *machineResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_machine"
 }
 
-func (r *machineCloneResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
+func (r *machineResource) Configure(_ context.Context, req resource.ConfigureRequest, _ *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
 	r.client = req.ProviderData.(*vbox.Client)
 }
 
-func (r *machineCloneResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *machineResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Clones an existing VirtualBox VM and optionally starts/stops it.",
+		Description: "Manages a VirtualBox virtual machine. Currently supports creating VMs by cloning an existing template. Direct VM creation from scratch is planned for a future release.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:    true,
@@ -63,14 +63,14 @@ func (r *machineCloneResource) Schema(_ context.Context, _ resource.SchemaReques
 			},
 			"name": schema.StringAttribute{
 				Required:    true,
-				Description: "Name of the new cloned VM.",
+				Description: "Name of the VM.",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"source": schema.StringAttribute{
-				Required:    true,
-				Description: "Source VM name or UUID to clone from.",
+				Optional:    true,
+				Description: "Source VM name or UUID to clone from. Required for new VMs (creating VMs from scratch is not yet supported).",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -156,10 +156,20 @@ func parseTimeout(s string) time.Duration {
 	return d
 }
 
-func (r *machineCloneResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan machineCloneModel
+func (r *machineResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan machineModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Check if source is provided - creating VMs from scratch is not yet supported
+	if plan.Source.IsNull() || strings.TrimSpace(plan.Source.ValueString()) == "" {
+		resp.Diagnostics.AddError(
+			"Creating VM from scratch not supported",
+			"The 'source' attribute is required. Creating VirtualBox VMs from scratch is not yet implemented. "+
+				"Please specify a source VM name or UUID to clone from, or import an existing machine.",
+		)
 		return
 	}
 
@@ -200,8 +210,8 @@ func (r *machineCloneResource) Create(ctx context.Context, req resource.CreateRe
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
-func (r *machineCloneResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state machineCloneModel
+func (r *machineResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state machineModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -227,9 +237,9 @@ func (r *machineCloneResource) Read(ctx context.Context, req resource.ReadReques
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-func (r *machineCloneResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan machineCloneModel
-	var prior machineCloneModel
+func (r *machineResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan machineModel
+	var prior machineModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	resp.Diagnostics.Append(req.State.Get(ctx, &prior)...)
 	if resp.Diagnostics.HasError() {
@@ -265,8 +275,8 @@ func (r *machineCloneResource) Update(ctx context.Context, req resource.UpdateRe
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
-func (r *machineCloneResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state machineCloneModel
+func (r *machineResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state machineModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -292,7 +302,7 @@ func (r *machineCloneResource) Delete(ctx context.Context, req resource.DeleteRe
 
 // ImportState implements resource.ResourceWithImportState.
 // Import ID format: machine UUID or name
-func (r *machineCloneResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *machineResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	// The import ID can be either a machine UUID or name
 	machineInfo, err := r.client.GetMachineInfoByID(ctx, req.ID)
 	if err != nil {
@@ -332,4 +342,4 @@ func (r *machineCloneResource) ImportState(ctx context.Context, req resource.Imp
 }
 
 // Ensure the resource implements the ResourceWithImportState interface
-var _ resource.ResourceWithImportState = &machineCloneResource{}
+var _ resource.ResourceWithImportState = &machineResource{}

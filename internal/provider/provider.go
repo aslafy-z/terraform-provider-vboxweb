@@ -62,7 +62,7 @@ func (p *vboxwebProvider) Configure(ctx context.Context, req provider.ConfigureR
 
 func (p *vboxwebProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewMachineCloneResource,
+		NewMachineResource,
 		NewNatPortForwardResource,
 	}
 }

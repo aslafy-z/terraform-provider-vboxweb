@@ -2,16 +2,16 @@
 page_title: "vboxweb_machine Resource - terraform-provider-vboxweb"
 subcategory: ""
 description: |-
-  Manages a VirtualBox virtual machine by cloning from an existing template.
+  Manages a VirtualBox virtual machine.
 ---
 
 # vboxweb_machine (Resource)
 
-Creates and manages a VirtualBox virtual machine by cloning an existing VM template.
+Manages a VirtualBox virtual machine. Currently supports creating VMs by cloning an existing template, with direct VM creation from scratch planned for a future release.
 
 The resource automatically handles:
 
-- Cloning the source VM with specified options
+- Cloning the source VM with specified options (when `source` is provided)
 - Starting or stopping the VM based on desired state
 - Cleaning up all associated files and media on destroy
 
@@ -67,11 +67,11 @@ resource "vboxweb_machine" "full" {
 
 ### Required
 
-- `name` (String) Name of the new cloned VM. Changing this forces a new resource.
-- `source` (String) Source VM name or UUID to clone from. Changing this forces a new resource.
+- `name` (String) Name of the VM. Changing this forces a new resource.
 
 ### Optional
 
+- `source` (String) Source VM name or UUID to clone from. Required when creating new VMs (creating VMs from scratch is not yet supported). Changing this forces a new resource.
 - `clone_mode` (String) Clone mode. Valid values: `MachineState` (default), `MachineAndChildStates`, `AllStates`. Changing this forces a new resource.
 - `clone_options` (List of String) Clone options. Valid values: `Link`, `KeepAllMACs`, `KeepNATMACs`, `KeepDiskNames`, `KeepHwUUIDs`. Changing this forces a new resource.
 - `state` (String) Desired power state. Valid values: `started`, `stopped` (default).
@@ -103,17 +103,21 @@ terraform import vboxweb_machine.example "550e8400-e29b-41d4-a716-446655440000"
 terraform import vboxweb_machine.example "my-existing-vm"
 ```
 
-~> **Note:** When importing an existing machine, the `source` attribute will be set to an empty string since the original source VM cannot be determined. After import, you should update your Terraform configuration to set `source` to an appropriate value (or any placeholder value, as it is only used during initial clone). The `clone_mode` and `clone_options` attributes will also be set to defaults.
+~> **Note:** When importing an existing machine, the `source` attribute will be set to an empty string since the original source VM cannot be determined. For imported machines, `source` does not need to be set in your configuration since it is only used during initial creation via cloning. The `clone_mode` and `clone_options` attributes will also be set to defaults.
 
 ## Lifecycle Behavior
 
 ### Create
+
+When `source` is specified (cloning):
 
 1. Finds the source VM by name or UUID
 2. Creates a new VM definition with the same platform architecture and OS type
 3. Clones the source VM to the new VM
 4. Registers the cloned VM with VirtualBox
 5. Starts or stops the VM based on the `state` attribute
+
+~> **Note:** Creating VMs from scratch (without a source) is not yet supported and will result in an error.
 
 ### Update
 

@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 )
 
-func TestMachineCloneResourceMetadata(t *testing.T) {
-	r := NewMachineCloneResource()
+func TestMachineResourceMetadata(t *testing.T) {
+	r := NewMachineResource()
 
 	req := resource.MetadataRequest{
 		ProviderTypeName: "vboxweb",
@@ -23,8 +23,8 @@ func TestMachineCloneResourceMetadata(t *testing.T) {
 	}
 }
 
-func TestMachineCloneResourceSchema(t *testing.T) {
-	r := NewMachineCloneResource()
+func TestMachineResourceSchema(t *testing.T) {
+	r := NewMachineResource()
 
 	req := resource.SchemaRequest{}
 	resp := &resource.SchemaResponse{}
@@ -37,8 +37,8 @@ func TestMachineCloneResourceSchema(t *testing.T) {
 
 	schema := resp.Schema
 
-	// Check required attributes
-	requiredAttrs := []string{"name", "source"}
+	// Check required attributes (only name is required now, source is optional)
+	requiredAttrs := []string{"name"}
 	for _, attrName := range requiredAttrs {
 		attr, ok := schema.Attributes[attrName]
 		if !ok {
@@ -156,8 +156,8 @@ func TestParseTimeout(t *testing.T) {
 	}
 }
 
-func TestMachineCloneResourceConfigure_NilProviderData(t *testing.T) {
-	r := &machineCloneResource{}
+func TestMachineResourceConfigure_NilProviderData(t *testing.T) {
+	r := &machineResource{}
 
 	req := resource.ConfigureRequest{
 		ProviderData: nil,
@@ -175,14 +175,14 @@ func TestMachineCloneResourceConfigure_NilProviderData(t *testing.T) {
 	}
 }
 
-func TestNewMachineCloneResource(t *testing.T) {
-	r := NewMachineCloneResource()
+func TestNewMachineResource(t *testing.T) {
+	r := NewMachineResource()
 	if r == nil {
 		t.Fatal("expected non-nil resource")
 	}
 
-	_, ok := r.(*machineCloneResource)
+	_, ok := r.(*machineResource)
 	if !ok {
-		t.Error("expected resource to be *machineCloneResource")
+		t.Error("expected resource to be *machineResource")
 	}
 }
