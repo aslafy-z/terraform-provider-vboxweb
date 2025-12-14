@@ -163,6 +163,13 @@ sed -i 's/\t_this string/\tThis string/g' vbox_service.go
 
 See the [Multi-Version Support Guide](docs/guides/multi-version-support.md) for full details.
 
+## Acknowledgments
+
+This project builds upon several open source projects:
+
+- **[go-vbox-api](https://github.com/0n0sendai/go-vbox-api)** - Go bindings for the VirtualBox SOAP API, which served as inspiration for this provider
+- **[gowsdl](https://github.com/hooklift/gowsdl)** - WSDL to Go code generator, used to generate the SOAP client from `vboxwebsrv` WSDL definitions
+
 ## License
 
 [MIT](LICENSE)
