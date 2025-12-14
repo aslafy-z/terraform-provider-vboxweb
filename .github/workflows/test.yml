@@ -60,12 +60,12 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: 'go.mod'
-          cache: true
+          cache: false  # golangci-lint-action manages its own cache
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v4
         with:
-          version: latest
+          version: v1.62.2
 
   docs:
     name: Documentation
