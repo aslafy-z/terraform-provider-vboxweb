@@ -30,6 +30,40 @@ func (p *vboxwebProvider) Metadata(_ context.Context, _ provider.MetadataRequest
 
 func (p *vboxwebProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "The VBoxWeb provider enables Terraform to manage VirtualBox virtual machines through the VirtualBox Web Service (vboxwebsrv). It supports cloning VMs from templates, managing VM power state, and configuring NAT port forwarding rules.",
+		MarkdownDescription: `
+The VBoxWeb provider enables Terraform to manage VirtualBox virtual machines through the VirtualBox Web Service (vboxwebsrv).
+
+## Features
+
+- **Clone VMs** from existing templates with configurable clone modes and options
+- **Manage VM power state** (start/stop with configurable session types)
+- **Configure NAT port forwarding** with automatic port allocation
+- **Import existing VMs** into Terraform state
+
+## Requirements
+
+- VirtualBox 7.1+ with vboxwebsrv running
+- Network access to the vboxwebsrv endpoint
+
+## Quick Start
+
+1. Start the VirtualBox web service:
+   ` + "`" + `bash
+   vboxwebsrv --host localhost --authentication null
+   ` + "`" + `
+
+2. Configure the provider:
+   ` + "`" + `hcl
+   provider "vboxweb" {
+     endpoint = "http://localhost:18083/"
+     username = ""
+     password = ""
+   }
+   ` + "`" + `
+
+See the [Getting Started Guide](guides/getting-started.md) for detailed setup instructions.
+`,
 		Attributes: map[string]schema.Attribute{
 			"endpoint": schema.StringAttribute{
 				Required:    true,

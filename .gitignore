@@ -8,7 +8,9 @@ terraform-provider-vboxweb.exe
 **/.terraformrc
 **/*.tfstate
 **/*.tfstate.*
-**/.terraform/
+
+# Playground - local testing (not committed)
+playground/
 
 # Test coverage
 coverage.out

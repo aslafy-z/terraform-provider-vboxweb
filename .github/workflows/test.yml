@@ -64,3 +64,29 @@ jobs:
         uses: golangci/golangci-lint-action@v4
         with:
           version: latest
+
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Generate docs
+        run: go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@latest generate
+
+      - name: Check for docs changes
+        run: |
+          if [ -n "$(git status --porcelain docs/)" ]; then
+            echo "::error::Documentation is out of date. Please run 'make docs' and commit the changes."
+            git diff docs/
+            exit 1
+          fi
+          echo "Documentation is up-to-date."

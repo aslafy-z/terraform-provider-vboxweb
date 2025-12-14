@@ -1,0 +1,40 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+## Example Usage
+
+### Basic Port Forward
+
+{{ tffile "examples/resources/vboxweb_nat_port_forward/basic.tf" }}
+
+### Auto Host Port Selection
+
+{{ tffile "examples/resources/vboxweb_nat_port_forward/auto_port.tf" }}
+
+### Multiple Port Forwards
+
+{{ tffile "examples/resources/vboxweb_nat_port_forward/multiple.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+NAT port forward rules can be imported using the format `machine_id:adapter_slot:name`.
+
+```shell
+terraform import {{.Name}}.example "machine_id:adapter_slot:name"
+```
+
+### Example
+
+```shell
+terraform import {{.Name}}.ssh "550e8400-e29b-41d4-a716-446655440000:0:ssh"
+```

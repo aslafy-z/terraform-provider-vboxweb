@@ -1,0 +1,94 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+The resource automatically handles:
+
+- Cloning the source VM with specified options (when `source` is provided)
+- Starting or stopping the VM based on desired state
+- Cleaning up all associated files and media on destroy
+- Importing existing VMs into Terraform state
+
+## Example Usage
+
+### Basic Clone
+
+{{ tffile "examples/resources/vboxweb_machine/basic.tf" }}
+
+### Clone with Power Management
+
+{{ tffile "examples/resources/vboxweb_machine/with_state.tf" }}
+
+### Linked Clone (Faster, Uses Less Disk)
+
+{{ tffile "examples/resources/vboxweb_machine/linked_clone.tf" }}
+
+### Full Clone with All Options
+
+{{ tffile "examples/resources/vboxweb_machine/full.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Import
+
+Existing VirtualBox machines can be imported into Terraform using their UUID or name.
+
+```shell
+terraform import {{.Name}}.example <machine_uuid_or_name>
+```
+
+### Import by UUID
+
+```shell
+terraform import {{.Name}}.example "550e8400-e29b-41d4-a716-446655440000"
+```
+
+### Import by Name
+
+```shell
+terraform import {{.Name}}.example "my-existing-vm"
+```
+
+~> **Note:** When importing an existing machine, the `source` attribute will be set to an empty string since the original source VM cannot be determined. For imported machines, `source` does not need to be set in your configuration since it is only used during initial creation via cloning. The `clone_mode` and `clone_options` attributes will also be set to defaults.
+
+## Lifecycle Behavior
+
+### Create
+
+When `source` is specified (cloning):
+
+1. Finds the source VM by name or UUID
+2. Creates a new VM definition with the same platform architecture and OS type
+3. Clones the source VM to the new VM
+4. Registers the cloned VM with VirtualBox
+5. Starts or stops the VM based on the `state` attribute
+
+~> **Note:** Creating VMs from scratch (without a source) is not yet supported and will result in an error.
+
+### Update
+
+Only the `state` attribute can be updated in-place. Changes to `name`, `source`, `clone_mode`, or `clone_options` will force recreation of the resource.
+
+### Delete
+
+1. Powers off the VM (best-effort)
+2. Unregisters the VM
+3. Deletes all associated files and media using `CleanupModeFull`
+
+## Timeouts
+
+All long-running operations respect the `wait_timeout` attribute:
+
+- Clone operation
+- Start operation
+- Stop operation
+- Delete operation
+
+The default timeout is 20 minutes. Increase this for large VMs or slow storage.
