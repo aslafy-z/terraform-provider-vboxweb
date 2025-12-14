@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/aslafy-z/terraform-provider-vboxweb/internal/vbox71"
+	"github.com/aslafy-z/terraform-provider-vboxweb/internal/vboxapi"
 )
 
 // Client provides high-level operations for VirtualBox management.
@@ -40,12 +43,12 @@ func IsNotFound(err error) bool {
 
 // newAdapter creates a version-appropriate adapter.
 // Currently only supports VBox 7.1, but designed for future version support.
-func newAdapter(endpoint string) VBoxAPI {
+func newAdapter(endpoint string) vboxapi.VBoxAPI {
 	// TODO: In the future, could auto-detect version and return appropriate adapter
-	return NewAdapter71(endpoint)
+	return vbox71.NewAdapter(endpoint)
 }
 
-func (c *Client) withSession(ctx context.Context, fn func(ctx context.Context, api VBoxAPI, session string) error) error {
+func (c *Client) withSession(ctx context.Context, fn func(ctx context.Context, api vboxapi.VBoxAPI, session string) error) error {
 	api := newAdapter(c.endpoint)
 
 	session, err := api.Logon(ctx, c.username, c.password)
@@ -82,7 +85,7 @@ func (c *Client) CloneAndConverge(ctx context.Context, req CloneRequest) (uuid s
 		req.DesiredState = "stopped"
 	}
 
-	err = c.withSession(ctx, func(ctx context.Context, api VBoxAPI, session string) error {
+	err = c.withSession(ctx, func(ctx context.Context, api vboxapi.VBoxAPI, session string) error {
 		srcRef, err := findMachine(ctx, api, session, req.Source)
 		if err != nil {
 			return err
@@ -130,7 +133,7 @@ func (c *Client) CloneAndConverge(ctx context.Context, req CloneRequest) (uuid s
 // GetStateByID returns the current state of a VM by its UUID.
 func (c *Client) GetStateByID(ctx context.Context, id string) (string, error) {
 	var out string
-	err := c.withSession(ctx, func(ctx context.Context, api VBoxAPI, session string) error {
+	err := c.withSession(ctx, func(ctx context.Context, api vboxapi.VBoxAPI, session string) error {
 		mRef, err := findMachine(ctx, api, session, id)
 		if err != nil {
 			return err
@@ -159,7 +162,7 @@ func (c *Client) ConvergeStateByID(ctx context.Context, id, desiredState, sessio
 		return "", fmt.Errorf("invalid desired state: %s", desiredState)
 	}
 
-	err := c.withSession(ctx, func(ctx context.Context, api VBoxAPI, session string) error {
+	err := c.withSession(ctx, func(ctx context.Context, api vboxapi.VBoxAPI, session string) error {
 		mRef, err := findMachine(ctx, api, session, id)
 		if err != nil {
 			return err
@@ -176,7 +179,7 @@ func (c *Client) DeleteByID(ctx context.Context, id string, timeout time.Duratio
 		timeout = 20 * time.Minute
 	}
 
-	return c.withSession(ctx, func(ctx context.Context, api VBoxAPI, session string) error {
+	return c.withSession(ctx, func(ctx context.Context, api vboxapi.VBoxAPI, session string) error {
 		mRef, err := findMachine(ctx, api, session, id)
 		if err != nil {
 			return err
@@ -204,7 +207,7 @@ func (c *Client) DeleteByID(ctx context.Context, id string, timeout time.Duratio
 
 // ---- helpers ----
 
-func findMachine(ctx context.Context, api VBoxAPI, session, nameOrID string) (string, error) {
+func findMachine(ctx context.Context, api vboxapi.VBoxAPI, session, nameOrID string) (string, error) {
 	machineRef, err := api.FindMachine(ctx, session, nameOrID)
 	if err != nil {
 		// Best-effort mapping to not found.
@@ -220,7 +223,7 @@ func findMachine(ctx context.Context, api VBoxAPI, session, nameOrID string) (st
 	return machineRef, nil
 }
 
-func waitProgress(ctx context.Context, api VBoxAPI, progressRef string, timeout time.Duration) error {
+func waitProgress(ctx context.Context, api vboxapi.VBoxAPI, progressRef string, timeout time.Duration) error {
 	if timeout <= 0 {
 		timeout = 20 * time.Minute
 	}
@@ -268,7 +271,7 @@ func waitProgress(ctx context.Context, api VBoxAPI, progressRef string, timeout 
 	}
 }
 
-func convergeState(ctx context.Context, api VBoxAPI, vboxSession string, machineRef, desiredState, sessionType string, timeout time.Duration) (string, error) {
+func convergeState(ctx context.Context, api vboxapi.VBoxAPI, vboxSession string, machineRef, desiredState, sessionType string, timeout time.Duration) (string, error) {
 	st, err := api.GetMachineState(ctx, machineRef)
 	if err != nil {
 		return "", err
@@ -276,14 +279,14 @@ func convergeState(ctx context.Context, api VBoxAPI, vboxSession string, machine
 
 	want := strings.ToLower(desiredState)
 	if want == "started" {
-		if st == MachineStateRunning {
+		if st == vboxapi.MachineStateRunning {
 			return st, nil
 		}
 		if err := ensureRunning(ctx, api, vboxSession, machineRef, sessionType, timeout); err != nil {
 			return "", err
 		}
 	} else if want == "stopped" {
-		if st == MachineStatePoweredOff {
+		if st == vboxapi.MachineStatePoweredOff {
 			return st, nil
 		}
 		if err := ensurePoweredOff(ctx, api, vboxSession, machineRef, timeout); err != nil {
@@ -300,7 +303,7 @@ func convergeState(ctx context.Context, api VBoxAPI, vboxSession string, machine
 	return st, nil
 }
 
-func ensureRunning(ctx context.Context, api VBoxAPI, vboxSession, machineRef, sessionType string, timeout time.Duration) error {
+func ensureRunning(ctx context.Context, api vboxapi.VBoxAPI, vboxSession, machineRef, sessionType string, timeout time.Duration) error {
 	sessObj, err := api.GetSessionObject(ctx, vboxSession)
 	if err != nil {
 		return err
@@ -320,7 +323,7 @@ func ensureRunning(ctx context.Context, api VBoxAPI, vboxSession, machineRef, se
 	return nil
 }
 
-func ensurePoweredOff(ctx context.Context, api VBoxAPI, vboxSession, machineRef string, timeout time.Duration) error {
+func ensurePoweredOff(ctx context.Context, api vboxapi.VBoxAPI, vboxSession, machineRef string, timeout time.Duration) error {
 	sessObj, err := api.GetSessionObject(ctx, vboxSession)
 	if err != nil {
 		return err
@@ -348,4 +351,224 @@ func ensurePoweredOff(ctx context.Context, api VBoxAPI, vboxSession, machineRef 
 
 	_ = api.UnlockSession(context.Background(), sessObj)
 	return nil
+}
+
+// NATPortForwardRule represents a NAT port forwarding rule.
+type NATPortForwardRule struct {
+	MachineID   string
+	AdapterSlot uint32
+	Name        string
+	Protocol    vboxapi.NATProtocol
+	HostIP      string
+	HostPort    uint16
+	GuestIP     string
+	GuestPort   uint16
+}
+
+// CreateNATPortForward creates a new NAT port forwarding rule on a VM's adapter.
+// The VM must be powered off or the adapter settings must allow hot changes.
+func (c *Client) CreateNATPortForward(ctx context.Context, rule NATPortForwardRule) error {
+	return c.withSession(ctx, func(ctx context.Context, api vboxapi.VBoxAPI, session string) error {
+		// Find the machine
+		machineRef, err := findMachine(ctx, api, session, rule.MachineID)
+		if err != nil {
+			return err
+		}
+
+		// Get a session object to lock the machine
+		sessObj, err := api.GetSessionObject(ctx, session)
+		if err != nil {
+			return fmt.Errorf("failed to get session object: %w", err)
+		}
+
+		// Lock the machine for write
+		if err := api.LockMachine(ctx, machineRef, sessObj, false); err != nil {
+			return fmt.Errorf("failed to lock machine: %w", err)
+		}
+		defer api.UnlockSession(context.Background(), sessObj)
+
+		// Get the mutable machine reference
+		mutableMachineRef, err := api.GetMutableMachine(ctx, sessObj)
+		if err != nil {
+			return fmt.Errorf("failed to get mutable machine: %w", err)
+		}
+
+		// Get the network adapter
+		adapterRef, err := api.GetNetworkAdapter(ctx, mutableMachineRef, rule.AdapterSlot)
+		if err != nil {
+			return fmt.Errorf("failed to get network adapter slot %d: %w", rule.AdapterSlot, err)
+		}
+
+		// Get the NAT engine
+		natEngineRef, err := api.GetNATEngine(ctx, adapterRef)
+		if err != nil {
+			return fmt.Errorf("failed to get NAT engine: %w", err)
+		}
+
+		// Add the redirect
+		if err := api.AddNATRedirect(ctx, natEngineRef, rule.Name, rule.Protocol, rule.HostIP, rule.HostPort, rule.GuestIP, rule.GuestPort); err != nil {
+			return fmt.Errorf("failed to add NAT redirect: %w", err)
+		}
+
+		// Save settings
+		if err := api.SaveSettings(ctx, mutableMachineRef); err != nil {
+			return fmt.Errorf("failed to save machine settings: %w", err)
+		}
+
+		return nil
+	})
+}
+
+// ReadNATPortForward reads a NAT port forwarding rule by name.
+// Returns nil, nil if the rule does not exist.
+func (c *Client) ReadNATPortForward(ctx context.Context, machineID string, adapterSlot uint32, name string) (*NATPortForwardRule, error) {
+	var result *NATPortForwardRule
+	err := c.withSession(ctx, func(ctx context.Context, api vboxapi.VBoxAPI, session string) error {
+		// Find the machine
+		machineRef, err := findMachine(ctx, api, session, machineID)
+		if err != nil {
+			return err
+		}
+
+		// Get the network adapter
+		adapterRef, err := api.GetNetworkAdapter(ctx, machineRef, adapterSlot)
+		if err != nil {
+			return fmt.Errorf("failed to get network adapter slot %d: %w", adapterSlot, err)
+		}
+
+		// Get the NAT engine
+		natEngineRef, err := api.GetNATEngine(ctx, adapterRef)
+		if err != nil {
+			return fmt.Errorf("failed to get NAT engine: %w", err)
+		}
+
+		redirects, err := api.GetNATRedirects(ctx, natEngineRef)
+		if err != nil {
+			return fmt.Errorf("failed to get NAT redirects: %w", err)
+		}
+
+		// Find the rule by name
+		for _, r := range redirects {
+			if r.Name == name {
+				result = &NATPortForwardRule{
+					MachineID:   machineID,
+					AdapterSlot: adapterSlot,
+					Name:        r.Name,
+					Protocol:    r.Protocol,
+					HostIP:      r.HostIP,
+					HostPort:    r.HostPort,
+					GuestIP:     r.GuestIP,
+					GuestPort:   r.GuestPort,
+				}
+				break
+			}
+		}
+		return nil
+	})
+	return result, err
+}
+
+// DeleteNATPortForward removes a NAT port forwarding rule.
+// Returns nil if the rule does not exist (idempotent).
+func (c *Client) DeleteNATPortForward(ctx context.Context, machineID string, adapterSlot uint32, name string) error {
+	return c.withSession(ctx, func(ctx context.Context, api vboxapi.VBoxAPI, session string) error {
+		// Find the machine
+		machineRef, err := findMachine(ctx, api, session, machineID)
+		if err != nil {
+			// If machine doesn't exist, rule is already gone
+			if IsNotFound(err) {
+				return nil
+			}
+			return err
+		}
+
+		// Get a session object to lock the machine
+		sessObj, err := api.GetSessionObject(ctx, session)
+		if err != nil {
+			return fmt.Errorf("failed to get session object: %w", err)
+		}
+
+		// Lock the machine for write
+		if err := api.LockMachine(ctx, machineRef, sessObj, false); err != nil {
+			return fmt.Errorf("failed to lock machine: %w", err)
+		}
+		defer api.UnlockSession(context.Background(), sessObj)
+
+		// Get the mutable machine reference
+		mutableMachineRef, err := api.GetMutableMachine(ctx, sessObj)
+		if err != nil {
+			return fmt.Errorf("failed to get mutable machine: %w", err)
+		}
+
+		// Get the network adapter
+		adapterRef, err := api.GetNetworkAdapter(ctx, mutableMachineRef, adapterSlot)
+		if err != nil {
+			return fmt.Errorf("failed to get network adapter slot %d: %w", adapterSlot, err)
+		}
+
+		// Get the NAT engine
+		natEngineRef, err := api.GetNATEngine(ctx, adapterRef)
+		if err != nil {
+			return fmt.Errorf("failed to get NAT engine: %w", err)
+		}
+
+		// Remove the redirect (ignore error if rule doesn't exist)
+		if err := api.RemoveNATRedirect(ctx, natEngineRef, name); err != nil {
+			// Best-effort: if the error indicates rule not found, ignore
+			errLower := strings.ToLower(err.Error())
+			if !strings.Contains(errLower, "not found") && !strings.Contains(errLower, "does not exist") {
+				return fmt.Errorf("failed to remove NAT redirect: %w", err)
+			}
+		}
+
+		// Save settings
+		if err := api.SaveSettings(ctx, mutableMachineRef); err != nil {
+			return fmt.Errorf("failed to save machine settings: %w", err)
+		}
+
+		return nil
+	})
+}
+
+// AllocateNATHostPort finds an available host port for a new NAT port forwarding rule.
+func (c *Client) AllocateNATHostPort(ctx context.Context, opts PortAllocatorOptions) (uint16, error) {
+	var port uint16
+	err := c.withSession(ctx, func(ctx context.Context, api vboxapi.VBoxAPI, session string) error {
+		var err error
+		port, err = AllocatePort(ctx, api, session, opts)
+		return err
+	})
+	return port, err
+}
+
+// GetAllNATRedirects returns all NAT redirects for a specific machine and adapter slot.
+func (c *Client) GetAllNATRedirects(ctx context.Context, machineID string, adapterSlot uint32) ([]vboxapi.NATRedirect, error) {
+	var result []vboxapi.NATRedirect
+	err := c.withSession(ctx, func(ctx context.Context, api vboxapi.VBoxAPI, session string) error {
+		// Find the machine
+		machineRef, err := findMachine(ctx, api, session, machineID)
+		if err != nil {
+			return err
+		}
+
+		// Get the network adapter
+		adapterRef, err := api.GetNetworkAdapter(ctx, machineRef, adapterSlot)
+		if err != nil {
+			return fmt.Errorf("failed to get network adapter slot %d: %w", adapterSlot, err)
+		}
+
+		// Get the NAT engine
+		natEngineRef, err := api.GetNATEngine(ctx, adapterRef)
+		if err != nil {
+			return fmt.Errorf("failed to get NAT engine: %w", err)
+		}
+
+		result, err = api.GetNATRedirects(ctx, natEngineRef)
+		if err != nil {
+			return fmt.Errorf("failed to get NAT redirects: %w", err)
+		}
+
+		return nil
+	})
+	return result, err
 }

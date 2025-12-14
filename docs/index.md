@@ -14,6 +14,7 @@ This provider supports **VirtualBox 7.1+** and enables infrastructure-as-code wo
 
 - **Clone VMs**: Create new virtual machines by cloning existing templates
 - **Power Management**: Start and stop VMs as part of your Terraform workflow
+- **NAT Port Forwarding**: Configure port forwarding rules with auto host port allocation
 - **Full Lifecycle**: Automatic cleanup of VMs and attached media on destroy
 
 ## Prerequisites
@@ -52,6 +53,18 @@ resource "vboxweb_machine" "example" {
   name   = "my-vm"
   source = "ubuntu-template"
   state  = "started"
+}
+
+resource "vboxweb_nat_port_forward" "ssh" {
+  machine_id   = vboxweb_machine.example.id
+  adapter_slot = 0
+  name         = "ssh"
+  protocol     = "tcp"
+  guest_port   = 22
+
+  auto_host_port     = true
+  auto_host_port_min = 20000
+  auto_host_port_max = 40000
 }
 ```
 

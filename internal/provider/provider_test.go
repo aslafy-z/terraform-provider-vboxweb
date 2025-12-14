@@ -70,14 +70,16 @@ func TestProviderResources(t *testing.T) {
 
 	resources := p.Resources(context.Background())
 
-	if len(resources) != 1 {
-		t.Fatalf("expected 1 resource, got %d", len(resources))
+	if len(resources) != 2 {
+		t.Fatalf("expected 2 resources, got %d", len(resources))
 	}
 
-	// Verify the resource factory works
-	resource := resources[0]()
-	if resource == nil {
-		t.Fatal("expected non-nil resource")
+	// Verify all resource factories work
+	for i, resourceFn := range resources {
+		resource := resourceFn()
+		if resource == nil {
+			t.Fatalf("expected non-nil resource at index %d", i)
+		}
 	}
 }
 

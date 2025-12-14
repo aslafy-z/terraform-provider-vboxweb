@@ -1,6 +1,6 @@
-// Package vbox provides a client for interacting with VirtualBox via vboxwebsrv SOAP API.
-// It supports multiple VirtualBox versions through version-specific adapters.
-package vbox
+// Package vboxapi defines the interface for VirtualBox SOAP operations.
+// This package has no dependencies on other internal packages to avoid import cycles.
+package vboxapi
 
 import "context"
 
@@ -13,8 +13,9 @@ type VBoxAPI interface {
 	Logoff(ctx context.Context, session string) error
 	GetSessionObject(ctx context.Context, session string) (sessionObj string, err error)
 
-	// Machine lookup
+	// Machine lookup and enumeration
 	FindMachine(ctx context.Context, session, nameOrID string) (machineRef string, err error)
+	GetMachines(ctx context.Context, session string) (machineRefs []string, err error)
 
 	// Machine creation and registration
 	CreateMachine(ctx context.Context, session, name, osTypeId, sourceMachineRef string) (machineRef string, err error)
@@ -42,8 +43,42 @@ type VBoxAPI interface {
 	GetProgressResultCode(ctx context.Context, progressRef string) (resultCode int32, err error)
 	GetProgressErrorText(ctx context.Context, progressRef string) (errorText string, err error)
 
+	// Network adapters and NAT engine
+	GetNetworkAdapter(ctx context.Context, machineRef string, slot uint32) (adapterRef string, err error)
+	GetNATEngine(ctx context.Context, adapterRef string) (natEngineRef string, err error)
+	GetNATRedirects(ctx context.Context, natEngineRef string) ([]NATRedirect, error)
+	AddNATRedirect(ctx context.Context, natEngineRef, name string, proto NATProtocol, hostIP string, hostPort uint16, guestIP string, guestPort uint16) error
+	RemoveNATRedirect(ctx context.Context, natEngineRef, name string) error
+
+	// NAT Networks (for port conflict detection across NAT networks)
+	GetNATNetworks(ctx context.Context, session string) (natNetworkRefs []string, err error)
+	GetNATNetworkPortForwardRules4(ctx context.Context, natNetworkRef string) ([]NATRedirect, error)
+
+	// Mutable machine operations (require lock)
+	GetMutableMachine(ctx context.Context, sessionObj string) (mutableMachineRef string, err error)
+	SaveSettings(ctx context.Context, machineRef string) error
+
 	// Version info
 	GetAPIVersion(ctx context.Context, session string) (version string, err error)
+}
+
+// NATProtocol represents the protocol for NAT port forwarding.
+type NATProtocol string
+
+const (
+	NATProtocolTCP NATProtocol = "TCP"
+	NATProtocolUDP NATProtocol = "UDP"
+)
+
+// NATRedirect represents a parsed NAT port forwarding rule.
+// The adapter is responsible for parsing the version-specific format.
+type NATRedirect struct {
+	Name      string
+	Protocol  NATProtocol
+	HostIP    string
+	HostPort  uint16
+	GuestIP   string
+	GuestPort uint16
 }
 
 // MachineState constants normalized across versions.
