@@ -43,18 +43,35 @@ go test ./...
 cd examples && cat README.md
 ```
 
-## Regenerating WSDL Bindings
+## Architecture
 
-The provider includes bindings for VirtualBox 7.1. For newer VirtualBox versions with API changes:
+The provider uses an adapter pattern for multi-version VirtualBox support:
 
+```
+internal/vbox/
+├── api.go          # VBoxAPI interface (version-agnostic)
+├── client.go       # High-level client using the interface
+├── adapter71.go    # VBox 7.1 implementation
+└── helpers.go      # Terraform type utilities
+
+internal/vbox71/    # Generated WSDL bindings for VBox 7.1
+```
+
+## Adding Support for New VirtualBox Versions
+
+1. Generate WSDL bindings:
 ```bash
 go install github.com/hooklift/gowsdl/cmd/gowsdl@latest
-mkdir -p internal/vboxXX  # Replace XX with version
+mkdir -p internal/vboxXX
 cd internal/vboxXX
 gowsdl -p vboxXX -o vbox_service.go "http://localhost:18083/?wsdl"
-sed -i 's/_this string/This string/g' vbox_service.go
-# Update internal/vbox/client.go to import the new package
+# Fix unexported field: gowsdl generates "_this" but Go needs exported "This"
+sed -i 's/\t_this string/\tThis string/g' vbox_service.go
 ```
+
+2. Create a new adapter (`internal/vbox/adapterXX.go`) implementing `VBoxAPI`
+
+3. Update `newAdapter()` in `client.go` to detect and use the new version
 
 ## License
 

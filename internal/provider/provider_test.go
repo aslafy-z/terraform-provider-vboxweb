@@ -86,7 +86,7 @@ func TestProviderDataSources(t *testing.T) {
 
 	dataSources := p.DataSources(context.Background())
 
-	if dataSources != nil && len(dataSources) != 0 {
+	if len(dataSources) != 0 {
 		t.Errorf("expected no data sources, got %d", len(dataSources))
 	}
 }
