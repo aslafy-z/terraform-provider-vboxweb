@@ -79,14 +79,5 @@ jobs:
           go-version-file: 'go.mod'
           cache: true
 
-      - name: Generate docs
-        run: go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@latest generate
-
-      - name: Check for docs changes
-        run: |
-          if [ -n "$(git status --porcelain docs/)" ]; then
-            echo "::error::Documentation is out of date. Please run 'make docs' and commit the changes."
-            git diff docs/
-            exit 1
-          fi
-          echo "Documentation is up-to-date."
+      - name: Check docs are up-to-date
+        run: make docs-check
