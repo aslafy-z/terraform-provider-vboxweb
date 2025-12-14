@@ -416,8 +416,8 @@ func (c *Client) CreateNATPortForward(ctx context.Context, rule NATPortForwardRu
 			return fmt.Errorf("failed to get session object: %w", err)
 		}
 
-		// Lock the machine for write
-		if err := api.LockMachine(ctx, machineRef, sessObj, false); err != nil {
+		// Lock the machine with shared lock (allows modifying settings while VM is running)
+		if err := api.LockMachine(ctx, machineRef, sessObj, true); err != nil {
 			return fmt.Errorf("failed to lock machine: %w", err)
 		}
 		defer api.UnlockSession(context.Background(), sessObj)
@@ -523,8 +523,8 @@ func (c *Client) DeleteNATPortForward(ctx context.Context, machineID string, ada
 			return fmt.Errorf("failed to get session object: %w", err)
 		}
 
-		// Lock the machine for write
-		if err := api.LockMachine(ctx, machineRef, sessObj, false); err != nil {
+		// Lock the machine with shared lock (allows modifying settings while VM is running)
+		if err := api.LockMachine(ctx, machineRef, sessObj, true); err != nil {
 			return fmt.Errorf("failed to lock machine: %w", err)
 		}
 		defer api.UnlockSession(context.Background(), sessObj)
